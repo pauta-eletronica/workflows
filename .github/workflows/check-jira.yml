@@ -1,0 +1,51 @@
+name: Check JIRA Ticket
+
+on:
+  workflow_call:
+    secrets:
+      JIRA_BASE_URL:
+        description: "The base URL for the JIRA instance"
+        required: true
+      JIRA_EMAIL:
+        description: "The JIRA account email"
+        required: true
+      JIRA_API_TOKEN:
+        description: "The JIRA API token"
+        required: true
+
+jobs:
+  check-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title matches JIRA
+        uses: actions/github-script@v6
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        with:
+          script: |
+            const jiraPattern = /^\[([A-Z]+-\d+)\] .+/;
+            const title = context.payload.pull_request.title;
+            const match = title.match(jiraPattern);
+            if (!match) {
+              core.setFailed(`PR title "${title}" does not match the required pattern "[PROJECT-1234] Description".`);
+              return;
+            }
+            const ticketId = match[1];
+            const jiraBaseUrl = process.env.JIRA_BASE_URL; // Make sure this is set correctly
+            const jiraEmail = process.env.JIRA_EMAIL;
+            const jiraApiToken = process.env.JIRA_API_TOKEN;
+            const auth = Buffer.from(`${jiraEmail}:${jiraApiToken}`).toString('base64');
+            const response = await fetch(`${jiraBaseUrl}/rest/api/3/issue/${ticketId}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Basic ${auth}`,
+                'Accept': 'application/json'
+              }
+            });
+            if (response.status === 404) {
+              core.setFailed(`JIRA ticket "${ticketId}" does not exist.`);
+            } else if (!response.ok) {
+              core.setFailed(`Error checking JIRA ticket "${ticketId}": ${response.statusText}`);
+            }
