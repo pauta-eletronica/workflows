@@ -1,4 +1,4 @@
-name: Check JIRA Ticket
+name: Check JIRA Ticket on PR title
 
 on:
   workflow_call:
@@ -17,6 +17,44 @@ jobs:
   check-title:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate Secrets
+        run: |
+          if [ -z "${{ secrets.JIRA_BASE_URL }}" ]; then
+            echo "Error: JIRA_BASE_URL is empty"
+            exit 1
+          fi
+          if [ -z "${{ secrets.JIRA_EMAIL }}" ]; then
+            echo "Error: JIRA_EMAIL is empty"
+            exit 1
+          fi
+          if [ -z "${{ secrets.JIRA_API_TOKEN }}" ]; then
+            echo "Error: JIRA_API_TOKEN is empty"
+            exit 1
+          fi
+
+      - name: Check Secret Availabilityy
+        run: |
+          if [ -z "${{ secrets.JIRA_BASE_URL }}" ]; then
+            echo "JIRA_BASE_URL is not available"
+            exit 1
+          else
+            echo "JIRA_BASE_URL is available"
+          fi
+
+          if [ -z "${{ secrets.JIRA_EMAIL }}" ]; then
+            echo "JIRA_EMAIL is not available"
+            exit 1
+          else
+            echo "JIRA_EMAIL is available"
+          fi
+
+          if [ -z "${{ secrets.JIRA_API_TOKEN }}" ]; then
+            echo "JIRA_API_TOKEN is not available"
+            exit 1
+          else
+            echo "JIRA_API_TOKEN is available"
+          fi
+
       - name: Check PR title matches JIRA
         uses: actions/github-script@v6
         env:
