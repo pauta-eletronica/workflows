@@ -82,8 +82,20 @@ jobs:
                 'Accept': 'application/json'
               }
             });
+
+            const loginReason = response.headers.get("x-seraph-loginreason");
+
+            if (loginReason === "AUTHENTICATED_FAILED") {
+              core.setFailed(loginReason);
+              return;
+            }
+
             if (response.status === 404) {
               core.setFailed(`JIRA ticket "${ticketId}" does not exist.`);
-            } else if (!response.ok) {
+              return;
+            }
+
+            if (!response.ok) {
               core.setFailed(`Error checking JIRA ticket "${ticketId}": ${response.statusText}`);
+              return;
             }
